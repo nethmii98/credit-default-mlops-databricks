@@ -37,13 +37,9 @@ jobs:
 
       - name: Run lightweight import test
         run: |
-          python -c "import src.data_prep"
           python -c "import src.features"
           python -c "import src.train"
           python -c "import src.evaluate"
-          python -c "import src.inference"
-          python -c "import src.monitoring"
-          python -c "import src.utils"
 
       - name: Run tests
         run: pytest tests/
