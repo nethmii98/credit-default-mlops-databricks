@@ -1,7 +1,6 @@
 # Databricks notebook source
 import mlflow
 from mlflow import MlflowClient
-import pandas as pd
 
 EXPERIMENT_NAME = "/Shared/credit-default-mlops"
 

@@ -60,12 +60,14 @@ if missing_cols:
 
 runs = runs.dropna(subset=["params.model_name", "metrics.val_auc"]).copy()
 
+
 def get_best_run_id_for_model(model_name: str) -> str:
     model_runs = runs[runs["params.model_name"] == model_name].copy()
     if model_runs.empty:
         raise ValueError(f"No runs found for model_name={model_name}")
     best_row = model_runs.sort_values("metrics.val_auc", ascending=False).iloc[0]
     return best_row["run_id"]
+
 
 run_id_a = get_best_run_id_for_model(MODEL_A_NAME)
 run_id_b = get_best_run_id_for_model(MODEL_B_NAME)
@@ -129,7 +131,7 @@ for idx in range(len(X)):
             "default_probability": prob,
             "actual_label": y_actual,
             "latency_ms": float(latency_ms),
-            "approval_decision": int(prob < 0.50),  
+            "approval_decision": int(prob < 0.50),
             "scored_timestamp": datetime.now(timezone.utc),
         }
     )

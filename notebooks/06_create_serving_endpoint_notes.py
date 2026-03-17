@@ -81,7 +81,7 @@ sample_payload = {
             "pay_to_bill_ratio_1": 0.25,
             "avg_pay_to_bill_ratio_6m": 0.258,
             "age_bucket": "26_35",
-            "limit_bal_x_late_payment_count": 200000
+            "limit_bal_x_late_payment_count": 200000,
         }
     ]
 }
@@ -89,9 +89,7 @@ sample_payload = {
 print("Sample request payload:")
 print(json.dumps(sample_payload, indent=2))
 
-sample_response_shape = {
-    "predictions": [0]
-}
+sample_response_shape = {"predictions": [0]}
 
 print("Example response shape:")
 print(json.dumps(sample_response_shape, indent=2))
@@ -124,7 +122,7 @@ curl -X POST \\
 print("curl template:")
 print(curl_template)
 
-python_requests_template = f'''
+python_requests_template = f"""
 import requests
 import json
 
@@ -141,7 +139,7 @@ headers = {{
 response = requests.post(url, headers=headers, data=json.dumps(payload))
 print(response.status_code)
 print(response.text)
-'''
+"""
 
 print("Python requests template:")
 print(python_requests_template)

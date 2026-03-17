@@ -1,7 +1,5 @@
 # Databricks notebook source
 # Import required libraries
-from pathlib import Path
-import os
 import pandas as pd
 from pyspark.sql import functions as F
 
@@ -45,7 +43,7 @@ column_mapping = {
     "PAY_AMT4": "payment_amount_jun",
     "PAY_AMT5": "payment_amount_may",
     "PAY_AMT6": "payment_amount_apr",
-    "default.payment.next.month": "default_next_month"
+    "default.payment.next.month": "default_next_month",
 }
 
 for old_col, new_col in column_mapping.items():
@@ -78,7 +76,7 @@ expected_columns = [
     "payment_amount_jun",
     "payment_amount_may",
     "payment_amount_apr",
-    "default_next_month"
+    "default_next_month",
 ]
 
 if list(df_silver.columns) != expected_columns:
@@ -114,7 +112,7 @@ expected_dtypes = {
     "payment_amount_jun": {"int", "bigint", "float", "double", "decimal"},
     "payment_amount_may": {"int", "bigint", "float", "double", "decimal"},
     "payment_amount_apr": {"int", "bigint", "float", "double", "decimal"},
-    "default_next_month": {"int", "bigint"}
+    "default_next_month": {"int", "bigint"},
 }
 
 actual_dtypes = dict(df_silver.dtypes)
@@ -134,24 +132,25 @@ for col, expected_types in expected_dtypes.items():
         )
 
 # MISSING VALUE CHECK
-missing_counts_df = df_silver.select([
-    F.sum(F.when(F.col(c).isNull(), 1).otherwise(0)).alias(c)
-    for c in df_silver.columns
-])
+missing_counts_df = df_silver.select(
+    [
+        F.sum(F.when(F.col(c).isNull(), 1).otherwise(0)).alias(c)
+        for c in df_silver.columns
+    ]
+)
 
 missing_counts = missing_counts_df.collect()[0].asDict()
 
-missing_cols = {col_name: count for col_name, count in missing_counts.items() if count > 0}
+missing_cols = {
+    col_name: count for col_name, count in missing_counts.items() if count > 0
+}
 
 if missing_cols:
     raise ValueError(f"Missing values found: {missing_cols}")
 
 # DUPLICATE CHECK
 duplicate_client_ids = (
-    df_silver.groupBy("client_id")
-    .count()
-    .filter(F.col("count") > 1)
-    .count()
+    df_silver.groupBy("client_id").count().filter(F.col("count") > 1).count()
 )
 
 if duplicate_client_ids > 0:
@@ -186,9 +185,9 @@ for column_name, allowed_values in category_rules.items():
         for row in df_silver.select(column_name).distinct().collect()
         if row[column_name] is not None
     }
-    
+
     invalid_values = actual_values - allowed_values
-    
+
     if invalid_values:
         raise ValueError(
             f"Column '{column_name}' contains invalid values: {sorted(invalid_values)}"
@@ -201,15 +200,15 @@ for column_name, allowed_values in category_rules.items():
 # These are merged into category 4 ("others")
 df_silver = df_silver.withColumn(
     "education_level",
-    F.when(F.col("education_level").isin(0, 5, 6), 4)
-     .otherwise(F.col("education_level"))
+    F.when(F.col("education_level").isin(0, 5, 6), 4).otherwise(
+        F.col("education_level")
+    ),
 )
 
 # clean marital_status undocumented value
 df_silver = df_silver.withColumn(
     "marital_status",
-    F.when(F.col("marital_status") == 0, 3)
-     .otherwise(F.col("marital_status"))
+    F.when(F.col("marital_status") == 0, 3).otherwise(F.col("marital_status")),
 )
 
 # SET CATEGORICAL DTYPES
@@ -220,9 +219,7 @@ for c in categorical_cols:
 
 
 # Save the silver table
-df_silver.write.format("delta") \
-    .mode("overwrite") \
-    .saveAsTable("credit_default_silver")
+df_silver.write.format("delta").mode("overwrite").saveAsTable("credit_default_silver")
 
 spark.sql("""
 ALTER TABLE credit_default_silver

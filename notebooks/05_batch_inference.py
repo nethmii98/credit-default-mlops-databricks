@@ -45,16 +45,17 @@ predictions = model.predict(feature_input_pdf)
 sk_model = mlflow.sklearn.load_model(model_uri)
 default_probabilities = sk_model.predict_proba(feature_input_pdf)[:, 1]
 
-results_pdf = pd.DataFrame({
-    "client_id": ids,
-    "prediction": predictions.astype(int),
-    "default_probability": default_probabilities.astype(float),
-    "model_version": str(model_version),
-})
+results_pdf = pd.DataFrame(
+    {
+        "client_id": ids,
+        "prediction": predictions.astype(int),
+        "default_probability": default_probabilities.astype(float),
+        "model_version": str(model_version),
+    }
+)
 
 results_sdf = spark.createDataFrame(results_pdf).withColumn(
-    "scored_timestamp",
-    F.current_timestamp()
+    "scored_timestamp", F.current_timestamp()
 )
 
 display(results_sdf.limit(10))

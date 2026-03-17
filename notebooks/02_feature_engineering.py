@@ -1,5 +1,4 @@
 # Databricks notebook source
-import pandas as pd
 import sys
 from pathlib import Path
 
@@ -7,7 +6,9 @@ bundle_root = Path.cwd().parent
 if str(bundle_root) not in sys.path:
     sys.path.insert(0, str(bundle_root))
 
-from src.features import build_features # Import the feature engineering pipeline from the project module
+from src.features import (
+    build_features,
+)  # Import the feature engineering pipeline from the project module
 
 # Define source (silver) and destination (feature) table names
 SILVER_TABLE = "credit_default_silver"
@@ -20,7 +21,7 @@ silver_spark_df = spark.table(SILVER_TABLE)
 silver_pdf = silver_spark_df.toPandas()
 
 # Generate new engineered features using the feature pipeline
-feature_pdf = build_features(silver_pdf, encode=False)  
+feature_pdf = build_features(silver_pdf, encode=False)
 
 # Define the final feature set that will be used for model training
 final_cols = [

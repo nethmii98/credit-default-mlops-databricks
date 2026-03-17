@@ -25,15 +25,16 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 try:
     from xgboost import XGBClassifier
+
     HAS_XGBOOST = True
 except Exception:
     HAS_XGBOOST = False
 
 import matplotlib.pyplot as plt
 
-
 TARGET_COL = "default_next_month"
 ID_COL = "client_id"
+
 
 def split_dataset(
     df: pd.DataFrame,
@@ -58,8 +59,11 @@ def split_dataset(
 
     return train_df, val_df, test_df
 
+
 def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
-    categorical_cols = X.select_dtypes(include=["object", "string", "category"]).columns.tolist()
+    categorical_cols = X.select_dtypes(
+        include=["object", "string", "category"]
+    ).columns.tolist()
     numeric_cols = [c for c in X.columns if c not in categorical_cols]
 
     numeric_transformer = Pipeline(
@@ -82,6 +86,7 @@ def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
             ("cat", categorical_transformer, categorical_cols),
         ]
     )
+
 
 def get_models() -> Dict[str, object]:
     models = {
@@ -111,9 +116,7 @@ def get_models() -> Dict[str, object]:
             random_state=42,
         )
     else:
-        models["gradient_boosting"] = GradientBoostingClassifier(
-            random_state=42
-        )
+        models["gradient_boosting"] = GradientBoostingClassifier(random_state=42)
 
     return models
 
@@ -127,6 +130,7 @@ def prepare_xy(df: pd.DataFrame, target_col: str = TARGET_COL):
     y = df[target_col].astype(int)
     return X, y
 
+
 def fit_pipeline(model, X_train: pd.DataFrame, y_train: pd.Series) -> Pipeline:
     preprocessor = build_preprocessor(X_train)
 
@@ -139,6 +143,7 @@ def fit_pipeline(model, X_train: pd.DataFrame, y_train: pd.Series) -> Pipeline:
 
     pipeline.fit(X_train, y_train)
     return pipeline
+
 
 def evaluate_model(model: Pipeline, X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
     y_pred = model.predict(X)
@@ -159,7 +164,10 @@ def evaluate_model(model: Pipeline, X: pd.DataFrame, y: pd.Series) -> Dict[str, 
 
     return metrics
 
-def save_confusion_matrix_artifact(model: Pipeline, X: pd.DataFrame, y: pd.Series, output_dir: Path) -> Path:
+
+def save_confusion_matrix_artifact(
+    model: Pipeline, X: pd.DataFrame, y: pd.Series, output_dir: Path
+) -> Path:
     y_pred = model.predict(X)
     cm = confusion_matrix(y, y_pred)
 
@@ -173,7 +181,10 @@ def save_confusion_matrix_artifact(model: Pipeline, X: pd.DataFrame, y: pd.Serie
     plt.close(fig)
     return output_path
 
-def save_feature_importance_artifact(model: Pipeline, X: pd.DataFrame, output_dir: Path) -> Path:
+
+def save_feature_importance_artifact(
+    model: Pipeline, X: pd.DataFrame, output_dir: Path
+) -> Path:
     model_step = model.named_steps["model"]
     preprocessor = model.named_steps["preprocessor"]
 
@@ -184,7 +195,9 @@ def save_feature_importance_artifact(model: Pipeline, X: pd.DataFrame, output_di
     elif hasattr(model_step, "coef_"):
         importances = np.abs(model_step.coef_[0])
     else:
-        data = pd.DataFrame({"feature": feature_names, "importance": np.zeros(len(feature_names))})
+        data = pd.DataFrame(
+            {"feature": feature_names, "importance": np.zeros(len(feature_names))}
+        )
         output_path = output_dir / "feature_importance.csv"
         data.to_csv(output_path, index=False)
         return output_path
@@ -204,7 +217,3 @@ def save_feature_importance_artifact(model: Pipeline, X: pd.DataFrame, output_di
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
     return output_path
-
-
-
-

@@ -1,7 +1,6 @@
 # Databricks notebook source
 import mlflow
 import mlflow.sklearn
-import pandas as pd
 from pathlib import Path
 import tempfile
 import sys
@@ -38,9 +37,15 @@ feature_pdf = feature_sdf.toPandas()
 
 train_df, val_df, test_df = split_dataset(feature_pdf, target_col="default_next_month")
 
-spark.createDataFrame(train_df).write.format("delta").mode("overwrite").saveAsTable(TRAIN_TABLE)
-spark.createDataFrame(val_df).write.format("delta").mode("overwrite").saveAsTable(VAL_TABLE)
-spark.createDataFrame(test_df).write.format("delta").mode("overwrite").saveAsTable(TEST_TABLE)
+spark.createDataFrame(train_df).write.format("delta").mode("overwrite").saveAsTable(
+    TRAIN_TABLE
+)
+spark.createDataFrame(val_df).write.format("delta").mode("overwrite").saveAsTable(
+    VAL_TABLE
+)
+spark.createDataFrame(test_df).write.format("delta").mode("overwrite").saveAsTable(
+    TEST_TABLE
+)
 
 X_train, y_train = prepare_xy(train_df)
 X_val, y_val = prepare_xy(val_df)
@@ -83,14 +88,15 @@ for model_name, model in models.items():
             mlflow.log_params({k: str(v) for k, v in model.get_params().items()})
 
         mlflow.log_metrics({f"val_{k}": v for k, v in val_metrics.items()})
-        mlflow.log_metric("val_threshold_precision", float(threshold_result["precision"]))
+        mlflow.log_metric(
+            "val_threshold_precision", float(threshold_result["precision"])
+        )
         mlflow.log_metric("val_threshold_recall", float(threshold_result["recall"]))
         mlflow.log_metric("val_threshold_f1", float(threshold_result["f1"]))
 
         mlflow.log_metric("test_precision_at_threshold", float(test_precision))
         mlflow.log_metric("test_recall_at_threshold", float(test_recall))
         mlflow.log_metric("test_f1_at_threshold", float(test_f1))
-
 
         # mlflow.log_param("train_rows", len(train_df))
         # mlflow.log_param("val_rows", len(val_df))
