@@ -3,11 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Tuple
 
-import json
-import tempfile
 
-import mlflow
-import mlflow.sklearn
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
@@ -17,7 +13,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     ConfusionMatrixDisplay,
-    classification_report,
     confusion_matrix,
     f1_score,
     precision_score,
@@ -53,8 +48,6 @@ def split_dataset(
         stratify=df[target_col],
         random_state=random_state,
     )
-
-    relative_val_size = val_size / (test_size + val_size)
 
     val_df, test_df = train_test_split(
         temp_df,
