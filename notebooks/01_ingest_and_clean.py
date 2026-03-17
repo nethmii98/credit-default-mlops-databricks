@@ -1,24 +1,23 @@
+# Databricks notebook source
 # Import required libraries
 from pathlib import Path
 import os
 import pandas as pd
 from pyspark.sql import functions as F
 
-# Get the repository root directory.
-# The notebook/script is inside the "notebooks" folder,
-# so we move one level up to reach the project root.
-repo_root = Path.cwd().parent
-
 # Build the full path to the dataset in the "data" folder
-data_path = os.path.join(repo_root, "data", "UCI_Credit_Card.csv")
+data_path = "/Volumes/workspace/default/credit_card_data/UCI_Credit_Card.csv"
+
 
 # Load the dataset into a pandas DataFrame
 df = pd.read_csv(data_path)
 
 
 # Save the raw data in a delta table
-df_bronze = spark.createDataFrame(df)
-df_bronze.write.format("delta").mode("overwrite").saveAsTable("credit_default_bronze")
+df_raw = spark.createDataFrame(df).withColumn("ingestion_ts", F.current_timestamp())
+df_raw.write.format("delta").mode("append").saveAsTable("credit_default_bronze")
+
+df_silver = spark.table("credit_default_bronze").drop("ingestion_ts")
 
 # Rename columns
 column_mapping = {
@@ -50,7 +49,7 @@ column_mapping = {
 }
 
 for old_col, new_col in column_mapping.items():
-    df_bronze = df_bronze.withColumnRenamed(old_col, new_col)
+    df_silver = df_silver.withColumnRenamed(old_col, new_col)
 
 # SCHEMA VALIDATION
 # Check that all expected columns are present and in the correct order.
@@ -82,9 +81,9 @@ expected_columns = [
     "default_next_month"
 ]
 
-if list(df_bronze.columns) != expected_columns:
-    missing_cols = set(expected_columns) - set(df_bronze.columns)
-    extra_cols = set(df_bronze.columns) - set(expected_columns)
+if list(df_silver.columns) != expected_columns:
+    missing_cols = set(expected_columns) - set(df_silver.columns)
+    extra_cols = set(df_silver.columns) - set(expected_columns)
     raise ValueError(
         f"Schema validation failed. Missing columns: {missing_cols}. Extra columns: {extra_cols}."
     )
@@ -118,7 +117,7 @@ expected_dtypes = {
     "default_next_month": {"int", "bigint"}
 }
 
-actual_dtypes = dict(df_bronze.dtypes)
+actual_dtypes = dict(df_silver.dtypes)
 
 for col, expected_types in expected_dtypes.items():
     actual_type = actual_dtypes.get(col)
@@ -135,9 +134,9 @@ for col, expected_types in expected_dtypes.items():
         )
 
 # MISSING VALUE CHECK
-missing_counts_df = df_bronze.select([
+missing_counts_df = df_silver.select([
     F.sum(F.when(F.col(c).isNull(), 1).otherwise(0)).alias(c)
-    for c in df_bronze.columns
+    for c in df_silver.columns
 ])
 
 missing_counts = missing_counts_df.collect()[0].asDict()
@@ -149,7 +148,7 @@ if missing_cols:
 
 # DUPLICATE CHECK
 duplicate_client_ids = (
-    df_bronze.groupBy("client_id")
+    df_silver.groupBy("client_id")
     .count()
     .filter(F.col("count") > 1)
     .count()
@@ -184,7 +183,7 @@ category_rules = {
 for column_name, allowed_values in category_rules.items():
     actual_values = {
         row[column_name]
-        for row in df_bronze.select(column_name).distinct().collect()
+        for row in df_silver.select(column_name).distinct().collect()
         if row[column_name] is not None
     }
     
@@ -200,14 +199,14 @@ for column_name, allowed_values in category_rules.items():
 # 0 = undocumented
 # 5, 6 = unknown
 # These are merged into category 4 ("others")
-df_bronze = df_bronze.withColumn(
+df_silver = df_silver.withColumn(
     "education_level",
     F.when(F.col("education_level").isin(0, 5, 6), 4)
      .otherwise(F.col("education_level"))
 )
 
 # clean marital_status undocumented value
-df_bronze = df_bronze.withColumn(
+df_silver = df_silver.withColumn(
     "marital_status",
     F.when(F.col("marital_status") == 0, 3)
      .otherwise(F.col("marital_status"))
@@ -217,10 +216,15 @@ df_bronze = df_bronze.withColumn(
 categorical_cols = ["gender", "education_level", "marital_status"]
 
 for c in categorical_cols:
-    df_bronze = df_bronze.withColumn(c, F.col(c).cast("string"))
+    df_silver = df_silver.withColumn(c, F.col(c).cast("string"))
 
 
 # Save the silver table
-df_bronze.write.format("delta") \
+df_silver.write.format("delta") \
     .mode("overwrite") \
     .saveAsTable("credit_default_silver")
+
+spark.sql("""
+ALTER TABLE credit_default_silver
+SET TBLPROPERTIES (delta.enableChangeDataFeed = true)
+""")
