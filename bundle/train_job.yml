@@ -1,0 +1,27 @@
+resources:
+  jobs:
+    credit_default_training_workflow:
+      name: credit-default-training-workflow
+
+      tasks:
+        - task_key: ingest_and_clean
+          notebook_task:
+            notebook_path: ../notebooks/01_ingest_and_clean.py
+
+        - task_key: feature_engineering
+          depends_on:
+            - task_key: ingest_and_clean
+          notebook_task:
+            notebook_path: ../notebooks/02_feature_engineering.py
+
+        - task_key: train_mlflow
+          depends_on:
+            - task_key: feature_engineering
+          notebook_task:
+            notebook_path: ../notebooks/03_train_mlflow.py
+
+        - task_key: register_best_model
+          depends_on:
+            - task_key: train_mlflow
+          notebook_task:
+            notebook_path: ../notebooks/04_register_best_model.py

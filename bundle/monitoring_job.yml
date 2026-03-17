@@ -1,0 +1,15 @@
+resources:
+  jobs:
+    credit_default_monitoring_workflow:
+      name: credit-default-monitoring-workflow
+
+      tasks:
+        - task_key: batch_inference
+          notebook_task:
+            notebook_path: ../notebooks/05_batch_inference.py
+
+        - task_key: monitoring_and_drift
+          depends_on:
+            - task_key: batch_inference
+          notebook_task:
+            notebook_path: ../notebooks/08_monitoring_and_drift.py
