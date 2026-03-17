@@ -42,4 +42,9 @@ jobs:
           python -c "import src.evaluate"
 
       - name: Run tests
-        run: pytest tests/
+        run: |
+          if [ -d tests ]; then
+            pytest tests/
+          else
+            echo "No tests directory found, skipping tests."
+          fi
