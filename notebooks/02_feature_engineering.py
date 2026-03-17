@@ -1,4 +1,12 @@
+# Databricks notebook source
 import pandas as pd
+import sys
+from pathlib import Path
+
+bundle_root = Path.cwd().parent
+if str(bundle_root) not in sys.path:
+    sys.path.insert(0, str(bundle_root))
+
 from src.features import build_features # Import the feature engineering pipeline from the project module
 
 # Define source (silver) and destination (feature) table names
