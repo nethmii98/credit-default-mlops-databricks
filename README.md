@@ -63,7 +63,7 @@ This project builds an **end-to-end MLOps pipeline** to predict whether a custom
 Models trained:
 - Logistic Regression
 - Random Forest
-- XGBoost / Gradient Boosting
+- Gradient Boosting
 
 Tracked in MLflow:
 - Parameters
@@ -101,7 +101,7 @@ Selection rule:
 Simulated A/B testing:
 
 - Model A: Random Forest  
-- Model B: XGBoost  
+- Model B: Gradient Boosting 
 - Traffic split: 50% / 50%
 
 Logged:
